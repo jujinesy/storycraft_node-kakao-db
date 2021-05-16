@@ -54,6 +54,7 @@ export function values<T extends SchemaLike>(schema: T, object: Model<T>): (Type
  * @return {StatementResult} updates list [key, value]
  */
 export function updates<T extends SchemaLike>(schema: T, object: Partial<Model<T>>): StatementResult {
+  const keys: string[] = [];
   const values: (TypeBindParam | null)[] = [];
 
   for (const key in schema) {  // eslint-disable-line guard-for-in
@@ -61,11 +62,12 @@ export function updates<T extends SchemaLike>(schema: T, object: Partial<Model<T
 
     if (!(key in object)) continue;
 
-    values.push(key, serializeValue(column, object[key]));
+    keys.push(key);
+    values.push(serializeValue(column, object[key]));    
   }
 
   return {
-    placeholders: Array(Object.keys(object).length).fill('?=?').join(','),
+    placeholders: keys.map((key) => `${key}=?`).join(','),
     values
   };
 }
@@ -76,7 +78,7 @@ export function updates<T extends SchemaLike>(schema: T, object: Partial<Model<T
  * @template T
  * @param {Column<T>} column Column data
  * @param {T | undefined} value
- * @return {TypeBindParam | undefined}
+ * @return {TypeBindParam | null}
  */
  export function serializeValue<T>(column: Column<T>, value: T): TypeBindParam | null {
   if (column.tags && !column.nullable && value == null) {
